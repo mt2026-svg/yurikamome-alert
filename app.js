@@ -181,9 +181,10 @@ function render() {
   const nexts  = getNextDepartures(currentStation, currentDir, 3);
   const dest   = currentDir === 'toyosu' ? '豊洲' : '新橋';
 
-  document.getElementById('station-name').textContent = st.name;
-  document.getElementById('dir-badge').textContent    = `${dest}方面`;
-
+  const cd = document.getElementById('countdown');
+const tl = document.getElementById('timer-label');
+if (cd) cd.style.display = 'none';
+if (tl) tl.style.display = 'none';
   const list = document.getElementById('train-list');
 
   if (!nexts.length) {
@@ -229,6 +230,14 @@ function tick() {
     return;
   }
 
+  // EOS表示を隠してカウントダウンを復元
+  const eosWrap  = document.getElementById('eos-wrap');
+  const countdown = document.getElementById('countdown');
+  const timerLabel = document.getElementById('timer-label');
+  if (eosWrap)    eosWrap.classList.remove('visible');
+  if (countdown)  countdown.style.display = 'flex';
+  if (timerLabel) timerLabel.style.display = 'block';
+
   if (activeIdx >= nexts.length) { activeIdx = 0; render(); }
 
   const now  = nowMs();
@@ -238,15 +247,20 @@ function tick() {
   const s  = Math.floor((diff % 60000) / 1000);
   const ms = Math.floor((diff % 1000) / 10);
 
-  document.getElementById('cd-min').textContent = String(m).padStart(2,'0');
-  document.getElementById('cd-sec').textContent = String(s).padStart(2,'0');
-  document.getElementById('cd-ms').textContent  = String(ms).padStart(2,'0');
+  const elMin = document.getElementById('cd-min');
+  const elSec = document.getElementById('cd-sec');
+  const elMs  = document.getElementById('cd-ms');
+  if (!elMin || !elSec || !elMs) return; // null guard
+
+  elMin.textContent = String(m).padStart(2,'0');
+  elSec.textContent = String(s).padStart(2,'0');
+  elMs.textContent  = String(ms).padStart(2,'0');
 
   updateAlertState(diff);
 
-  // 発車したら次の便へ自動スライド
   if (diff === 0) { activeIdx = 0; render(); }
 }
+
 
 function tickEOS() {
   const eosCD = document.getElementById('eos-countdown');
