@@ -275,6 +275,8 @@ function updateAlertState(diffMs) {
   const zt   = document.getElementById('zebra-top');
   const zb   = document.getElementById('zebra-bottom');
 
+  if (!zt || !zb) return;
+
   body.classList.remove('warning','critical');
   zt.classList.remove('visible');
   zb.classList.remove('visible');
