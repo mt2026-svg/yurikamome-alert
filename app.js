@@ -25,10 +25,9 @@ const STATIONS = [
 
 const CARD_LABELS = ['次便', '次々便', '次々々便'];
 
-// 警告閾値（ミリ秒）
-const WARN_MS          = 5 * 60 * 1000;   // 5分
-const CRITICAL_MS      = 1 * 60 * 1000;   // 1分
-const FIRST_PREVIEW_MS = 60 * 60 * 1000;  // 始発60分前からカウントダウン
+const WARN_MS          = 5 * 60 * 1000;
+const CRITICAL_MS      = 1 * 60 * 1000;
+const FIRST_PREVIEW_MS = 60 * 60 * 1000;
 
 // =============================================
 //  STATE
@@ -37,8 +36,6 @@ let timetableData  = {};
 let currentStation = 'OdaibaKaihinkoen';
 let currentDir     = 'toyosu';
 let activeIdx      = 0;
-let isHighSpeed    = false;
-let demoOffsetMs   = 0;
 let tickTimer      = null;
 
 const DEMO_MODE = WORKER_URL.includes('YOUR-WORKER');
@@ -46,25 +43,23 @@ const DEMO_MODE = WORKER_URL.includes('YOUR-WORKER');
 // =============================================
 //  DEMO DATA
 // =============================================
-
-// 新橋→豊洲方向：新橋(U01)を基準に各駅の加算分数
 const STATION_OFFSET_TOYOSU = {
-  Shinbashi:                        0,
-  Shiodome:                         1,
-  Takeshiba:                        2,
-  Hinode:                           4,
-  ShibauraFuto:                     5,
-  OdaibaKaihinkoen:                 9,
-  Daiba:                           11,
-  TokyoInternationalCruiseTerminal:13,
-  TelecomCenter:                   15,
-  Aomi:                            16,
-  TokyoBigSight:                   18,
-  Ariake:                          20,
-  AriakeTennisNoMori:              21,
-  Shijomae:                        23,
-  ShinToyosu:                      25,
-  Toyosu:                          27,
+  Shinbashi:                         0,
+  Shiodome:                          1,
+  Takeshiba:                         2,
+  Hinode:                            4,
+  ShibauraFuto:                      5,
+  OdaibaKaihinkoen:                  9,
+  Daiba:                            11,
+  TokyoInternationalCruiseTerminal: 13,
+  TelecomCenter:                    15,
+  Aomi:                             16,
+  TokyoBigSight:                    18,
+  Ariake:                           20,
+  AriakeTennisNoMori:               21,
+  Shijomae:                         23,
+  ShinToyosu:                       25,
+  Toyosu:                           27,
 };
 
 function buildDemoTimes(startMin, intervalMin, count) {
@@ -79,9 +74,8 @@ function buildDemoTimes(startMin, intervalMin, count) {
 }
 
 function getDemoTimetable() {
-  // 平日 新橋始発 5:15、豊洲始発 5:43、約13分間隔、約70本
-  const FIRST_TOYOSU   = 5 * 60 + 15;  // 新橋→豊洲 新橋発
-  const FIRST_SHINBASHI = 5 * 60 + 43; // 豊洲→新橋 豊洲発
+  const FIRST_TOYOSU    = 5 * 60 + 15;
+  const FIRST_SHINBASHI = 5 * 60 + 43;
   const INTERVAL = 13;
   const COUNT    = 70;
 
@@ -89,12 +83,10 @@ function getDemoTimetable() {
   STATIONS.forEach(st => {
     result[st.id] = {};
     const offT = STATION_OFFSET_TOYOSU[st.id] || 0;
-
     if (st.dirs.includes('toyosu')) {
       result[st.id].toyosu = buildDemoTimes(FIRST_TOYOSU + offT, INTERVAL, COUNT);
     }
     if (st.dirs.includes('shinbashi')) {
-      // 豊洲→新橋は逆方向なので豊洲(27分)から引く
       const offS = 27 - offT;
       result[st.id].shinbashi = buildDemoTimes(FIRST_SHINBASHI + offS, INTERVAL, COUNT);
     }
@@ -106,10 +98,7 @@ function getDemoTimetable() {
 //  ODPT FETCH
 // =============================================
 async function fetchTimetable() {
-  if (DEMO_MODE) {
-    timetableData = getDemoTimetable();
-    return;
-  }
+  if (DEMO_MODE) { timetableData = getDemoTimetable(); return; }
   try {
     const res  = await fetch(WORKER_URL);
     const data = await res.json();
@@ -123,27 +112,21 @@ async function fetchTimetable() {
 function parseTimetable(data) {
   const today  = getTodayCalendar();
   const result = {};
-
   data.forEach(entry => {
     const calRaw = entry['odpt:calendar'] || '';
     const cal    = calRaw.includes('Weekday') ? 'Weekday' : 'SaturdayHoliday';
     if (cal !== today) return;
-
     const stId   = (entry['odpt:station'] || '').split('.').pop();
     const dirRaw = (entry['odpt:railDirection'] || '').split('.').pop().toLowerCase();
     const dir    = dirRaw === 'toyosu' ? 'toyosu'
-                 : dirRaw === 'shinbashi' ? 'shinbashi'
-                 : null;
+                 : dirRaw === 'shinbashi' ? 'shinbashi' : null;
     if (!dir) return;
-
     const times = (entry['odpt:stationTimetableObject'] || [])
       .map(o => o['odpt:departureTime'] || o['odpt:arrivalTime'])
       .filter(Boolean);
-
     if (!result[stId]) result[stId] = {};
     result[stId][dir] = times;
   });
-
   timetableData = result;
 }
 
@@ -158,7 +141,7 @@ function getTodayCalendar() {
 function nowMs() {
   const n = new Date();
   return (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) * 1000
-       + n.getMilliseconds() + demoOffsetMs;
+       + n.getMilliseconds();
 }
 
 function timeStrToMs(str) {
@@ -233,11 +216,10 @@ function render() {
   const list = document.getElementById('train-list');
 
   if (!nexts.length) {
-    // 運行終了
     document.getElementById('countdown').style.display   = 'none';
     document.getElementById('timer-label').style.display = 'none';
     document.getElementById('eos-wrap').classList.add('visible');
-    const first = getFirstDeparture(currentStation, currentDir);
+    const first    = getFirstDeparture(currentStation, currentDir);
     const eosFirst = document.getElementById('eos-first');
     if (eosFirst) eosFirst.textContent = first ? `始発 ${first.str}` : '';
     list.innerHTML = '';
@@ -294,22 +276,18 @@ function tick() {
 
   updateAlertState(diff);
 
-  // 発車したら次の便へ
   if (diff === 0) { activeIdx = 0; render(); }
 }
 
 function tickEOS() {
   const eosCD = document.getElementById('eos-countdown');
   if (!eosCD) return;
-
   const first = getFirstDeparture(currentStation, currentDir);
   if (!first) return;
-
   let firstMs = first.ms;
   const now   = nowMs();
   if (firstMs <= now) firstMs += 86400000;
   const diff  = firstMs - now;
-
   if (diff <= FIRST_PREVIEW_MS) {
     const m = Math.floor(diff / 60000);
     const s = Math.floor((diff % 60000) / 1000);
@@ -346,17 +324,6 @@ function updateAlertState(diffMs) {
 }
 
 // =============================================
-//  SPEED TOGGLE (demo)
-// =============================================
-function toggleSpeed() {
-  isHighSpeed = !isHighSpeed;
-  const btn = document.getElementById('speed-btn');
-  if (!btn) return;
-  btn.textContent = isHighSpeed ? '10倍速ON' : '10倍速OFF';
-  btn.classList.toggle('active', isHighSpeed);
-}
-
-// =============================================
 //  INIT
 // =============================================
 async function init() {
@@ -366,12 +333,7 @@ async function init() {
   document.getElementById('station-select').value = currentStation;
   render();
 
-  tickTimer = setInterval(() => {
-    if (isHighSpeed) demoOffsetMs += 150;
-    tick();
-  }, 16);
-
-  // 5分ごとに時刻表再取得
+  tickTimer = setInterval(tick, 16);
   setInterval(fetchTimetable, 5 * 60 * 1000);
 }
 
