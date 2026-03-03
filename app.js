@@ -25,9 +25,9 @@ const STATIONS = [
 
 const CARD_LABELS = ['次便', '次々便', '次々々便'];
 
-const WARN_MS          = 5 * 60 * 1000;
-const CRITICAL_MS      = 1 * 60 * 1000;
-const FIRST_PREVIEW_MS = 60 * 60 * 1000;
+const WARN_MS          = 3 * 60 * 1000;   // 3分前から黄色
+const CRITICAL_MS      = 1 * 60 * 1000;   // 1分前から黒
+const FIRST_PREVIEW_MS = 60 * 60 * 1000;  // 始発60分前からカウントダウン
 
 // =============================================
 //  STATE
@@ -36,7 +36,6 @@ let timetableData  = {};
 let currentStation = 'OdaibaKaihinkoen';
 let currentDir     = 'toyosu';
 let activeIdx      = 0;
-let tickTimer      = null;
 
 const DEMO_MODE = WORKER_URL.includes('YOUR-WORKER');
 
@@ -74,8 +73,8 @@ function buildDemoTimes(startMin, intervalMin, count) {
 }
 
 function getDemoTimetable() {
-  const FIRST_TOYOSU    = 5 * 60 + 15;
-  const FIRST_SHINBASHI = 5 * 60 + 43;
+  const FIRST_TOYOSU    = 5 * 60 + 15; // 新橋 5:15発
+  const FIRST_SHINBASHI = 5 * 60 + 43; // 豊洲 5:43発
   const INTERVAL = 13;
   const COUNT    = 70;
 
@@ -118,7 +117,7 @@ function parseTimetable(data) {
     if (cal !== today) return;
     const stId   = (entry['odpt:station'] || '').split('.').pop();
     const dirRaw = (entry['odpt:railDirection'] || '').split('.').pop().toLowerCase();
-    const dir    = dirRaw === 'toyosu' ? 'toyosu'
+    const dir    = dirRaw === 'toyosu'    ? 'toyosu'
                  : dirRaw === 'shinbashi' ? 'shinbashi' : null;
     if (!dir) return;
     const times = (entry['odpt:stationTimetableObject'] || [])
@@ -306,7 +305,7 @@ function updateAlertState(diffMs) {
   const zb   = document.getElementById('zebra-bottom');
   if (!zt || !zb) return;
 
-  body.classList.remove('warning','critical');
+  body.classList.remove('warning', 'critical');
   zt.classList.remove('visible');
   zb.classList.remove('visible');
 
@@ -332,8 +331,7 @@ async function init() {
   await fetchTimetable();
   document.getElementById('station-select').value = currentStation;
   render();
-
-  tickTimer = setInterval(tick, 16);
+  setInterval(tick, 16);
   setInterval(fetchTimetable, 5 * 60 * 1000);
 }
 
