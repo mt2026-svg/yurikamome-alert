@@ -57,12 +57,52 @@ function buildDemoTimes(startMin, intervalMin, count) {
   return times;
 }
 
+// 新橋→豊洲方向の各駅の始発オフセット（分）
+// 新橋 5:15 を基準に、各駅約1〜2分ずつ加算
+const STATION_OFFSET_TOYOSU = {
+  Shinbashi:                        0,
+  Shiodome:                         1,
+  Takeshiba:                        2,
+  Hinode:                           4,
+  ShibauraFuto:                     5,
+  OdaibaKaihinkoen:                 9,
+  Daiba:                           11,
+  TokyoInternationalCruiseTerminal:13,
+  TelecomCenter:                   15,
+  Aomi:                            16,
+  TokyoBigSight:                   18,
+  Ariake:                          20,
+  AriakeTennisNoMori:              21,
+  Shijomae:                        23,
+  ShinToyosu:                      25,
+  Toyosu:                          27,
+};
+
 function getDemoTimetable() {
+  // 平日 新橋始発 5:15、終電 約23:45、約13分間隔
+  const FIRST_SHINBASHI_TOYOSU  = 5 * 60 + 15;  // 5:15
+  const FIRST_TOYOSU_SHINBASHI  = 5 * 60 + 43;  // 5:43（豊洲始発）
+  const INTERVAL = 13; // 分
+  const COUNT    = 72; // 本数（約15.5時間分）
+
   const result = {};
   STATIONS.forEach(st => {
     result[st.id] = {};
-    if (st.dirs.includes('toyosu'))    result[st.id].toyosu    = buildDemoTimes(7*60,    13, 58);
-    if (st.dirs.includes('shinbashi')) result[st.id].shinbashi = buildDemoTimes(7*60+6,  13, 58);
+
+    if (st.dirs.includes('toyosu')) {
+      const offset = STATION_OFFSET_TOYOSU[st.id] || 0;
+      result[st.id].toyosu = buildDemoTimes(
+        FIRST_SHINBASHI_TOYOSU + offset, INTERVAL, COUNT
+      );
+    }
+
+    if (st.dirs.includes('shinbashi')) {
+      // 豊洲→新橋は逆順オフセット
+      const reverseOffset = 27 - (STATION_OFFSET_TOYOSU[st.id] || 0);
+      result[st.id].shinbashi = buildDemoTimes(
+        FIRST_TOYOSU_SHINBASHI + reverseOffset, INTERVAL, COUNT
+      );
+    }
   });
   return result;
 }
