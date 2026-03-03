@@ -2,7 +2,7 @@
 //  CONFIG
 // =============================================
 // Cloudflare WorkerのURLに書き換えてください
-const WORKER_URL = 'odpt-proxy-yurikamome.takahara-design.workers.dev';
+const WORKER_URL = 'https://odpt-proxy-yurikamome.takahara-design.workers.dev';
 
 const STATIONS = [
   { id: 'Shinbashi',                        name: '新橋',                       num: 'U01', dirs: ['toyosu'] },
