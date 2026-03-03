@@ -249,13 +249,17 @@ function tick() {
 }
 
 function tickEOS() {
-  const first = getFirstDeparture(currentStation, currentDir);
   const eosCD = document.getElementById('eos-countdown');
-  if (!first || !eosCD) return;  // ← null チェック追加
+  if (!eosCD) return;  // ← これで止まります
+
+  const first = getFirstDeparture(currentStation, currentDir);
+  if (!first) return;
+
   let firstMs = first.ms;
   const now   = nowMs();
   if (firstMs <= now) firstMs += 86400000;
   const diff  = firstMs - now;
+
   if (diff <= FIRST_PREVIEW_MS) {
     const m = Math.floor(diff / 60000);
     const s = Math.floor((diff % 60000) / 1000);
