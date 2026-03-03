@@ -250,20 +250,18 @@ function tick() {
 
 function tickEOS() {
   const first = getFirstDeparture(currentStation, currentDir);
-  if (!first) return;
+  const eosCD = document.getElementById('eos-countdown');
+  if (!first || !eosCD) return;  // ← null チェック追加
   let firstMs = first.ms;
   const now   = nowMs();
   if (firstMs <= now) firstMs += 86400000;
   const diff  = firstMs - now;
-
   if (diff <= FIRST_PREVIEW_MS) {
-    // 始発カウントダウン表示
     const m = Math.floor(diff / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    document.getElementById('eos-countdown').textContent =
-      `始発まで あと ${String(m).padStart(2,'0')}分 ${String(s).padStart(2,'0')}秒`;
+    eosCD.textContent = `始発まで あと ${String(m).padStart(2,'0')}分 ${String(s).padStart(2,'0')}秒`;
   } else {
-    document.getElementById('eos-countdown').textContent = '';
+    eosCD.textContent = '';
   }
 }
 
