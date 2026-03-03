@@ -1,40 +1,49 @@
 // =============================================
 //  CONFIG
 // =============================================
-// Cloudflare WorkerのURLに書き換えてください
 const WORKER_URL = 'https://odpt-proxy-yurikamome.takahara-design.workers.dev/';
 
 const STATIONS = [
-  { id: 'Shinbashi',                        name: '新橋',                       num: 'U01', dirs: ['toyosu'] },
-  { id: 'Shiodome',                         name: '汐留',                       num: 'U02', dirs: ['toyosu','shinbashi'] },
-  { id: 'Takeshiba',                        name: '竹芝',                       num: 'U03', dirs: ['toyosu','shinbashi'] },
-  { id: 'Hinode',                           name: '日の出',                     num: 'U04', dirs: ['toyosu','shinbashi'] },
-  { id: 'ShibauraFuto',                     name: '芝浦ふ頭',                   num: 'U05', dirs: ['toyosu','shinbashi'] },
-  { id: 'OdaibaKaihinkoen',                 name: 'お台場海浜公園',             num: 'U06', dirs: ['toyosu','shinbashi'] },
-  { id: 'Daiba',                            name: '台場',                       num: 'U07', dirs: ['toyosu','shinbashi'] },
-  { id: 'TokyoInternationalCruiseTerminal', name: '東京国際クルーズターミナル', num: 'U08', dirs: ['toyosu','shinbashi'] },
-  { id: 'TelecomCenter',                    name: 'テレコムセンター',           num: 'U09', dirs: ['toyosu','shinbashi'] },
-  { id: 'Aomi',                             name: '青海',                       num: 'U10', dirs: ['toyosu','shinbashi'] },
-  { id: 'TokyoBigSight',                    name: '東京ビッグサイト',           num: 'U11', dirs: ['toyosu','shinbashi'] },
-  { id: 'Ariake',                           name: '有明',                       num: 'U12', dirs: ['toyosu','shinbashi'] },
-  { id: 'AriakeTennisNoMori',               name: '有明テニスの森',             num: 'U13', dirs: ['toyosu','shinbashi'] },
-  { id: 'Shijomae',                         name: '市場前',                     num: 'U14', dirs: ['toyosu','shinbashi'] },
-  { id: 'ShinToyosu',                       name: '新豊洲',                     num: 'U15', dirs: ['toyosu','shinbashi'] },
-  { id: 'Toyosu',                           name: '豊洲',                       num: 'U16', dirs: ['shinbashi'] },
+  { id: 'Shimbashi',                        name: '新橋',                       num: 'U01', dirs: ['outbound'] },
+  { id: 'Shiodome',                         name: '汐留',                       num: 'U02', dirs: ['outbound','inbound'] },
+  { id: 'Takeshiba',                        name: '竹芝',                       num: 'U03', dirs: ['outbound','inbound'] },
+  { id: 'Hinode',                           name: '日の出',                     num: 'U04', dirs: ['outbound','inbound'] },
+  { id: 'ShibauraFuto',                     name: '芝浦ふ頭',                   num: 'U05', dirs: ['outbound','inbound'] },
+  { id: 'OdaibaKaihinkoen',                 name: 'お台場海浜公園',             num: 'U06', dirs: ['outbound','inbound'] },
+  { id: 'Daiba',                            name: '台場',                       num: 'U07', dirs: ['outbound','inbound'] },
+  { id: 'TokyoInternationalCruiseTerminal', name: '東京国際クルーズターミナル', num: 'U08', dirs: ['outbound','inbound'] },
+  { id: 'TelecomCenter',                    name: 'テレコムセンター',           num: 'U09', dirs: ['outbound','inbound'] },
+  { id: 'Aomi',                             name: '青海',                       num: 'U10', dirs: ['outbound','inbound'] },
+  { id: 'TokyoBigSight',                    name: '東京ビッグサイト',           num: 'U11', dirs: ['outbound','inbound'] },
+  { id: 'Ariake',                           name: '有明',                       num: 'U12', dirs: ['outbound','inbound'] },
+  { id: 'AriakeTennisNoMori',               name: '有明テニスの森',             num: 'U13', dirs: ['outbound','inbound'] },
+  { id: 'ShijoMae',                         name: '市場前',                     num: 'U14', dirs: ['outbound','inbound'] },
+  { id: 'ShinToyosu',                       name: '新豊洲',                     num: 'U15', dirs: ['outbound','inbound'] },
+  { id: 'Toyosu',                           name: '豊洲',                       num: 'U16', dirs: ['inbound'] },
 ];
+
+// Outbound = 豊洲方面 / Inbound = 新橋方面
+const DIR_LABEL = {
+  outbound: '豊洲',
+  inbound:  '新橋',
+};
+const TAB_LABEL = {
+  outbound: '豊洲行き →',
+  inbound:  '← 新橋行き',
+};
 
 const CARD_LABELS = ['次便', '次々便', '次々々便'];
 
-const WARN_MS          = 3 * 60 * 1000;   // 3分前から黄色
-const CRITICAL_MS      = 1 * 60 * 1000;   // 1分前から黒
-const FIRST_PREVIEW_MS = 60 * 60 * 1000;  // 始発60分前からカウントダウン
+const WARN_MS          = 3 * 60 * 1000;
+const CRITICAL_MS      = 1 * 60 * 1000;
+const FIRST_PREVIEW_MS = 60 * 60 * 1000;
 
 // =============================================
 //  STATE
 // =============================================
 let timetableData  = {};
 let currentStation = 'OdaibaKaihinkoen';
-let currentDir     = 'toyosu';
+let currentDir     = 'outbound';
 let activeIdx      = 0;
 
 const DEMO_MODE = WORKER_URL.includes('YOUR-WORKER');
@@ -42,8 +51,8 @@ const DEMO_MODE = WORKER_URL.includes('YOUR-WORKER');
 // =============================================
 //  DEMO DATA
 // =============================================
-const STATION_OFFSET_TOYOSU = {
-  Shinbashi:                         0,
+const STATION_OFFSET_OUTBOUND = {
+  Shimbashi:                         0,
   Shiodome:                          1,
   Takeshiba:                         2,
   Hinode:                            4,
@@ -56,7 +65,7 @@ const STATION_OFFSET_TOYOSU = {
   TokyoBigSight:                    18,
   Ariake:                           20,
   AriakeTennisNoMori:               21,
-  Shijomae:                         23,
+  ShijoMae:                         23,
   ShinToyosu:                       25,
   Toyosu:                           27,
 };
@@ -73,21 +82,21 @@ function buildDemoTimes(startMin, intervalMin, count) {
 }
 
 function getDemoTimetable() {
-  const FIRST_TOYOSU    = 5 * 60 + 15; // 新橋 5:15発
-  const FIRST_SHINBASHI = 5 * 60 + 43; // 豊洲 5:43発
-  const INTERVAL = 13;
-  const COUNT    = 70;
+  const FIRST_OUT = 5 * 60 + 45; // 新橋 5:45発
+  const FIRST_IN  = 5 * 60 + 43; // 豊洲 5:43発
+  const INTERVAL  = 13;
+  const COUNT     = 70;
 
   const result = {};
   STATIONS.forEach(st => {
     result[st.id] = {};
-    const offT = STATION_OFFSET_TOYOSU[st.id] || 0;
-    if (st.dirs.includes('toyosu')) {
-      result[st.id].toyosu = buildDemoTimes(FIRST_TOYOSU + offT, INTERVAL, COUNT);
+    const offOut = STATION_OFFSET_OUTBOUND[st.id] || 0;
+    if (st.dirs.includes('outbound')) {
+      result[st.id].outbound = buildDemoTimes(FIRST_OUT + offOut, INTERVAL, COUNT);
     }
-    if (st.dirs.includes('shinbashi')) {
-      const offS = 27 - offT;
-      result[st.id].shinbashi = buildDemoTimes(FIRST_SHINBASHI + offS, INTERVAL, COUNT);
+    if (st.dirs.includes('inbound')) {
+      const offIn = 27 - offOut;
+      result[st.id].inbound = buildDemoTimes(FIRST_IN + offIn, INTERVAL, COUNT);
     }
   });
   return result;
@@ -111,21 +120,28 @@ async function fetchTimetable() {
 function parseTimetable(data) {
   const today  = getTodayCalendar();
   const result = {};
+
   data.forEach(entry => {
     const calRaw = entry['odpt:calendar'] || '';
     const cal    = calRaw.includes('Weekday') ? 'Weekday' : 'SaturdayHoliday';
     if (cal !== today) return;
-    const stId   = (entry['odpt:station'] || '').split('.').pop();
-    const dirRaw = (entry['odpt:railDirection'] || '').split('.').pop().toLowerCase();
-    const dir    = dirRaw === 'toyosu'    ? 'toyosu'
-                 : dirRaw === 'shinbashi' ? 'shinbashi' : null;
-    if (!dir) return;
+
+    // odpt.Station:Yurikamome.Yurikamome.OdaibaKaihinkoen → OdaibaKaihinkoen
+    const stId = (entry['odpt:station'] || '').split('.').pop();
+
+    // odpt.RailDirection:Outbound → outbound
+    // odpt.RailDirection:Inbound  → inbound
+    const dirRaw = (entry['odpt:railDirection'] || '').split(':').pop().toLowerCase();
+    if (dirRaw !== 'outbound' && dirRaw !== 'inbound') return;
+
     const times = (entry['odpt:stationTimetableObject'] || [])
       .map(o => o['odpt:departureTime'] || o['odpt:arrivalTime'])
       .filter(Boolean);
+
     if (!result[stId]) result[stId] = {};
-    result[stId][dir] = times;
+    result[stId][dirRaw] = times;
   });
+
   timetableData = result;
 }
 
@@ -168,6 +184,7 @@ function getFirstDeparture(stationId, dir) {
 // =============================================
 function buildStationSelect() {
   const sel = document.getElementById('station-select');
+  if (!sel) return;
   sel.innerHTML = STATIONS.map(st =>
     `<option value="${st.id}">${st.num} ${st.name}</option>`
   ).join('');
@@ -175,7 +192,9 @@ function buildStationSelect() {
 }
 
 function onStationChange() {
-  currentStation = document.getElementById('station-select').value;
+  const sel = document.getElementById('station-select');
+  if (!sel) return;
+  currentStation = sel.value;
   const st = STATIONS.find(s => s.id === currentStation);
   if (!st.dirs.includes(currentDir)) currentDir = st.dirs[0];
   activeIdx = 0;
@@ -192,13 +211,13 @@ function switchDir(dir) {
 
 function updateDirTabs() {
   const st   = STATIONS.find(s => s.id === currentStation);
-  const tabT = document.getElementById('tab-toyosu');
-  const tabS = document.getElementById('tab-shinbashi');
-  if (!tabT || !tabS) return;
-  tabT.disabled = !st.dirs.includes('toyosu');
-  tabS.disabled = !st.dirs.includes('shinbashi');
-  tabT.classList.toggle('active', currentDir === 'toyosu');
-  tabS.classList.toggle('active', currentDir === 'shinbashi');
+  const tabO = document.getElementById('tab-outbound');
+  const tabI = document.getElementById('tab-inbound');
+  if (!tabO || !tabI) return;
+  tabO.disabled = !st.dirs.includes('outbound');
+  tabI.disabled = !st.dirs.includes('inbound');
+  tabO.classList.toggle('active', currentDir === 'outbound');
+  tabI.classList.toggle('active', currentDir === 'inbound');
 }
 
 // =============================================
@@ -207,17 +226,23 @@ function updateDirTabs() {
 function render() {
   const st    = STATIONS.find(s => s.id === currentStation);
   const nexts = getNextDepartures(currentStation, currentDir, 3);
-  const dest  = currentDir === 'toyosu' ? '豊洲' : '新橋';
+  const dest  = DIR_LABEL[currentDir];
 
-  document.getElementById('station-name').textContent = st.name;
-  document.getElementById('dir-badge').textContent    = `${dest}方面`;
+  const elName = document.getElementById('station-name');
+  const elBadge = document.getElementById('dir-badge');
+  if (elName)  elName.textContent  = st.name;
+  if (elBadge) elBadge.textContent = `${dest}方面`;
 
   const list = document.getElementById('train-list');
+  if (!list) return;
 
   if (!nexts.length) {
-    document.getElementById('countdown').style.display   = 'none';
-    document.getElementById('timer-label').style.display = 'none';
-    document.getElementById('eos-wrap').classList.add('visible');
+    const elCD  = document.getElementById('countdown');
+    const elLbl = document.getElementById('timer-label');
+    const elEOS = document.getElementById('eos-wrap');
+    if (elCD)  elCD.style.display  = 'none';
+    if (elLbl) elLbl.style.display = 'none';
+    if (elEOS) elEOS.classList.add('visible');
     const first    = getFirstDeparture(currentStation, currentDir);
     const eosFirst = document.getElementById('eos-first');
     if (eosFirst) eosFirst.textContent = first ? `始発 ${first.str}` : '';
@@ -225,9 +250,12 @@ function render() {
     return;
   }
 
-  document.getElementById('countdown').style.display   = 'flex';
-  document.getElementById('timer-label').style.display = 'block';
-  document.getElementById('eos-wrap').classList.remove('visible');
+  const elCD  = document.getElementById('countdown');
+  const elLbl = document.getElementById('timer-label');
+  const elEOS = document.getElementById('eos-wrap');
+  if (elCD)  elCD.style.display  = 'flex';
+  if (elLbl) elLbl.style.display = 'block';
+  if (elEOS) elEOS.classList.remove('visible');
 
   if (activeIdx >= nexts.length) activeIdx = 0;
 
@@ -329,7 +357,8 @@ async function init() {
   buildStationSelect();
   updateDirTabs();
   await fetchTimetable();
-  document.getElementById('station-select').value = currentStation;
+  const sel = document.getElementById('station-select');
+  if (sel) sel.value = currentStation;
   render();
   setInterval(tick, 16);
   setInterval(fetchTimetable, 5 * 60 * 1000);
