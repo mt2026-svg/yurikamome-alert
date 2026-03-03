@@ -154,6 +154,7 @@ function onStationChange() {
   activeIdx = 0;
   updateDirTabs();
   render();
+  tick(); // ← これを追加
 }
 
 function switchDir(dir) {
@@ -161,6 +162,7 @@ function switchDir(dir) {
   activeIdx  = 0;
   updateDirTabs();
   render();
+  tick(); // ← これを追加
 }
 
 function updateDirTabs() {
@@ -222,6 +224,11 @@ function selectCard(idx) {
 //  TICK
 // =============================================
 function tick() {
+  const minEl = document.getElementById('cd-min');
+  const secEl = document.getElementById('cd-sec');
+  const msEl  = document.getElementById('cd-ms');
+  if (!minEl || !secEl || !msEl) return; // ← null チェック
+
   const nexts = getNextDepartures(currentStation, currentDir, 3);
 
   if (!nexts.length) {
@@ -229,14 +236,6 @@ function tick() {
     tickEOS();
     return;
   }
-
-  // EOS表示を隠してカウントダウンを復元
-  const eosWrap  = document.getElementById('eos-wrap');
-  const countdown = document.getElementById('countdown');
-  const timerLabel = document.getElementById('timer-label');
-  if (eosWrap)    eosWrap.classList.remove('visible');
-  if (countdown)  countdown.style.display = 'flex';
-  if (timerLabel) timerLabel.style.display = 'block';
 
   if (activeIdx >= nexts.length) { activeIdx = 0; render(); }
 
@@ -247,20 +246,16 @@ function tick() {
   const s  = Math.floor((diff % 60000) / 1000);
   const ms = Math.floor((diff % 1000) / 10);
 
-  const elMin = document.getElementById('cd-min');
-  const elSec = document.getElementById('cd-sec');
-  const elMs  = document.getElementById('cd-ms');
-  if (!elMin || !elSec || !elMs) return; // null guard
-
-  elMin.textContent = String(m).padStart(2,'0');
-  elSec.textContent = String(s).padStart(2,'0');
-  elMs.textContent  = String(ms).padStart(2,'0');
+  minEl.textContent = String(m).padStart(2,'0');
+  secEl.textContent = String(s).padStart(2,'0');
+  msEl.textContent  = String(ms).padStart(2,'0');
 
   updateAlertState(diff);
 
   if (diff === 0) { activeIdx = 0; render(); }
 }
 
+  
 
 function tickEOS() {
   const eosCD = document.getElementById('eos-countdown');
